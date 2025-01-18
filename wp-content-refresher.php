@@ -22,6 +22,38 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+
+// Define plugin constants
+define('WCR_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('WCR_PLUGIN_URL', plugin_dir_url(__FILE__));
+
+require_once WCR_PLUGIN_DIR . 'admin/class-wp-content-refresher-admin.php';
+require_once WCR_PLUGIN_DIR . 'includes/class-wp-content-refresher-security.php';
+require_once WCR_PLUGIN_DIR . 'includes/class-wp-content-refresher-logger.php';
+require_once WCR_PLUGIN_DIR . 'includes/shortcodes/previous-posts-shortcode.php';
+require_once WCR_PLUGIN_DIR . 'includes/shortcodes/recent-updated-posts-shortcode.php';
+
+
+// Initialize admin
+if (is_admin()) {
+    add_action('plugins_loaded', function() {
+        new WP_Content_Refresher_Admin();
+    });
+}
+
+// Sanitize shortcode attributes
+function sanitize_shortcode_atts($atts) {
+    return array_map(function($value) {
+        if (is_numeric($value)) {
+            return absint($value);
+        }
+        return sanitize_text_field($value);
+    }, $atts);
+}
+
+// Initialize security features
+WP_Content_Refresher_Security::init();
+
 // Aktivasi plugin
 register_activation_hook(__FILE__, 'daily_content_updater_activation');
 function daily_content_updater_activation() {
@@ -100,3 +132,39 @@ function add_daily_cron_interval($schedules) {
     );
     return $schedules;
 }
+
+
+
+function wcr_load_more_posts() {
+    check_ajax_referer('wcr_ajax_nonce', 'nonce');
+    
+    $offset = isset($_POST['offset']) ? absint($_POST['offset']) : 0;
+    $args = array(
+        'post_type' => 'post',
+        'post_status' => 'publish',
+        'posts_per_page' => 5,
+        'offset' => $offset,
+        'orderby' => 'modified',
+        'order' => 'DESC'
+    );
+    
+    $query = new WP_Query($args);
+    $response = array(
+        'html' => '',
+        'has_more' => $query->found_posts > ($offset + 5)
+    );
+    
+    if ($query->have_posts()) {
+        ob_start();
+        while ($query->have_posts()) {
+            $query->the_post();
+            // Render post template
+            get_template_part('template-parts/content', 'recent-post');
+        }
+        $response['html'] = ob_get_clean();
+    }
+    
+    wp_send_json_success($response);
+}
+add_action('wp_ajax_load_more_posts', 'wcr_load_more_posts');
+add_action('wp_ajax_nopriv_load_more_posts', 'wcr_load_more_posts');

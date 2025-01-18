@@ -1,0 +1,46 @@
+/**
+ * WP Content Refresher Frontend Styles
+ * 
+ * Handles all frontend styling including animations, loading states,
+ * and lazy loading image transitions.
+ *
+ * @package     WPContentRefresher
+ * @subpackage  Frontend
+ * @version     1.0.0
+ * @author      arisciwek
+ * @copyright   Copyright (c) 2025, arisciwek
+ * @license     GPL v2 or later
+ * 
+ * File: assets/css/wcr-styles.css
+ */
+
+/* Lazy loading dan animasi */
+.wcr-lazy-image {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.wcr-lazy-image.loaded {
+    opacity: 1;
+}
+
+.wcr-loading {
+    text-align: center;
+    padding: 20px;
+}
+
+.wcr-loading::after {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
