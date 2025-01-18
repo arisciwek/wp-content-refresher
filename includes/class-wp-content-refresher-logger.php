@@ -68,7 +68,8 @@ class WP_Content_Refresher_Logger {
 
     // Add meta box for exclusion
     public static function add_exclude_meta_box() {
-        $post_types = get_option('wcr_settings')['post_types'] ?? array('post', 'page');
+        $settings = get_option('wcr_settings');
+        $post_types = isset($settings['post_types']) ? $settings['post_types'] : array('post', 'page');
         
         foreach ($post_types as $post_type) {
             add_meta_box(
