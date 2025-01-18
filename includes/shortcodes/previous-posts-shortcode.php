@@ -21,22 +21,35 @@ if (!defined('ABSPATH')) {
 // Mendaftarkan shortcode [previous_posts]
 add_shortcode('previous_posts', 'display_previous_posts');
 
+function get_post_excerpt($post_id) {
+    // Cek apakah ada custom excerpt
+    $excerpt = get_post_field('post_excerpt', $post_id);
+    
+    // Jika tidak ada excerpt, gunakan content dengan batasan kata
+    if (empty($excerpt)) {
+        $content = get_post_field('post_content', $post_id);
+        $excerpt = wp_trim_words($content, 20, '...');
+    }
+    
+    return $excerpt;
+}
+
 function display_previous_posts($atts) {
+    // Get settings dari admin panel
+    $options = get_option('wcr_settings');
+    $posts_per_page = isset($options['posts_per_shortcode']) ? absint($options['posts_per_shortcode']) : 5;
+    
     // Get current post ID
     $current_post_id = get_the_ID();
-    
-    // Hitung range post ID yang akan dicari (5 post sebelumnya)
-    $start_id = $current_post_id - 1;
-    $end_id = $current_post_id - 5;
     
     // Query untuk mendapatkan posts
     $args = array(
         'post_type' => 'post',
         'post_status' => 'publish',
-        'posts_per_page' => 5,
+        'posts_per_page' => $posts_per_page,
         'orderby' => 'ID',
         'order' => 'DESC',
-        'post__in' => range($end_id, $start_id)
+        'post__lt' => $current_post_id // Get posts dengan ID lebih kecil
     );
     
     $previous_posts = new WP_Query($args);
@@ -45,31 +58,96 @@ function display_previous_posts($atts) {
     ob_start();
     
     if ($previous_posts->have_posts()) {
-        echo '<div class="previous-posts-list">';
-        echo '<h4>Artikel Terkait:</h4>';
-        echo '<ul style="list-style-type: none; padding-left: 0;">';
+        echo '<div class="previous-posts-container">';
+        echo '<h4 class="previous-posts-title">Artikel Terkait:</h4>';
+        echo '<ul class="previous-posts-list">';
         
         while ($previous_posts->have_posts()) {
             $previous_posts->the_post();
             
-            // Dapatkan excerpt atau potong content jika excerpt kosong
-            $excerpt = get_the_excerpt();
-            if (empty($excerpt)) {
-                $excerpt = wp_trim_words(get_the_content(), 20, '...');
+            // Dapatkan excerpt dengan helper function
+            $excerpt = get_post_excerpt(get_the_ID());
+            
+            echo '<li class="previous-post-item">';
+            echo '<a href="' . get_permalink() . '" class="previous-post-link">';
+            
+            // Thumbnail jika ada
+            if (has_post_thumbnail()) {
+                echo '<div class="previous-post-thumbnail">';
+                echo get_the_post_thumbnail(null, 'thumbnail');
+                echo '</div>';
             }
             
-            echo '<li style="margin-bottom: 15px;">';
-            echo '<div class="related-post-item">';
-            echo '<a href="' . get_permalink() . '" style="text-decoration: none; color: #333;">';
-            echo '<h5 style="margin: 0 0 5px 0;">' . get_the_title() . '</h5>';
-            echo '</a>';
-            echo '<p style="margin: 0; font-size: 0.9em; color: #666;">' . $excerpt . '</p>';
+            echo '<div class="previous-post-content">';
+            echo '<h5 class="previous-post-title">' . get_the_title() . '</h5>';
+            echo '<p class="previous-post-excerpt">' . $excerpt . '</p>';
             echo '</div>';
+            
+            echo '</a>';
             echo '</li>';
         }
         
         echo '</ul>';
         echo '</div>';
+        
+        // Tambahkan CSS
+        echo '<style>
+            .previous-posts-container {
+                margin: 2em 0;
+                padding: 1em;
+                background: #f9f9f9;
+                border-radius: 5px;
+            }
+            .previous-posts-title {
+                margin-bottom: 1em;
+                font-size: 1.2em;
+                color: #333;
+            }
+            .previous-posts-list {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+            .previous-post-item {
+                margin-bottom: 1em;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 1em;
+            }
+            .previous-post-item:last-child {
+                border-bottom: none;
+                margin-bottom: 0;
+                padding-bottom: 0;
+            }
+            .previous-post-link {
+                display: flex;
+                text-decoration: none;
+                color: inherit;
+            }
+            .previous-post-thumbnail {
+                flex: 0 0 100px;
+                margin-right: 1em;
+            }
+            .previous-post-thumbnail img {
+                width: 100px;
+                height: 100px;
+                object-fit: cover;
+                border-radius: 4px;
+            }
+            .previous-post-content {
+                flex: 1;
+            }
+            .previous-post-title {
+                margin: 0 0 0.5em 0;
+                font-size: 1.1em;
+                color: #1a1a1a;
+            }
+            .previous-post-excerpt {
+                margin: 0;
+                font-size: 0.9em;
+                color: #666;
+                line-height: 1.5;
+            }
+        </style>';
     }
     
     // Reset post data
@@ -78,10 +156,3 @@ function display_previous_posts($atts) {
     // Kembalikan output buffer
     return ob_get_clean();
 }
-
-// Tambahkan file ini ke plugin utama
-function include_previous_posts_shortcode() {
-    include_once plugin_dir_path(__FILE__) . 'previous-posts-shortcode.php';
-}
-add_action('init', 'include_previous_posts_shortcode');
-
