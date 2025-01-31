@@ -32,6 +32,7 @@ require_once WCR_PLUGIN_DIR . 'includes/class-wp-content-refresher-security.php'
 require_once WCR_PLUGIN_DIR . 'includes/class-wp-content-refresher-logger.php';
 require_once WCR_PLUGIN_DIR . 'includes/shortcodes/previous-posts-shortcode.php';
 require_once WCR_PLUGIN_DIR . 'includes/shortcodes/recent-updated-posts-shortcode.php';
+require_once WCR_PLUGIN_DIR . 'includes/shortcodes/process-daily-content-update.php';
 
 
 // Initialize admin
